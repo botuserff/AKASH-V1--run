@@ -1,82 +1,74 @@
 const axios = require("axios");
-const fs = require("fs-extra");
+const fs = require("fs");
 const path = require("path");
+const FormData = require("form-data");
+require("dotenv").config(); // 🔑 .env থেকে API Key লোড করবে
 
 module.exports.config = {
-  name: "edit",
+  name: "editimg",
   version: "1.0.1",
-  hasPermssion: 0,
-  credits: "Akash Edit",
-  description: "Reply করা ছবি বা URL দিয়ে AI দিয়ে ছবি এডিট করে",
-  commandCategory: "image",
-  usages: "edit [prompt] | [reply image or link]",
-  cooldowns: 5,
-  dependencies: {
-    "axios": "",
-    "fs-extra": ""
-  }
+  permission: 0,
+  credits: "Akash",
+  description: "AI দিয়ে ছবি এডিট (reply করা ইমেজ + prompt)",
+  prefix: true,
+  category: "image",
+  usages: "editimg <prompt>",
 };
 
-module.exports.run = async ({ api, event, args }) => {
-  let linkanh = event.messageReply?.attachments?.[0]?.url || null;
-  const prompt = args.join(" ").split("|")[0]?.trim();
-
-  if (!linkanh && args.length > 1) {
-    linkanh = args.join(" ").split("|")[1]?.trim();
-  }
-
-  if (!linkanh || !prompt) {
-    return api.sendMessage(
-      "📸 Usage:\n✨ Example:\nedit add cute girlfriend | <reply photo or link>",
-      event.threadID,
-      event.messageID
-    );
-  }
-
-  linkanh = linkanh.replace(/\s/g, "");
-  if (!/^https?:\/\//.test(linkanh)) {
-    return api.sendMessage(
-      "⚠️ সঠিক ইমেজ লিঙ্ক দিন (http:// বা https:// হতে হবে)",
-      event.threadID,
-      event.messageID
-    );
-  }
-
-  // Fixed: Direct API URL
-  const apiUrl = `https://imranapi.vercel.app/api/editimg?prompt=${encodeURIComponent(
-    prompt
-  )}&image=${encodeURIComponent(linkanh)}`;
-
-  const waitMsg = await api.sendMessage("⏳ অনুগ্রহ করে অপেক্ষা করুন, ছবি এডিট হচ্ছে ...", event.threadID);
-
+module.exports.run = async function ({ api, event, args }) {
   try {
-    const filePath = path.join(__dirname, "cache", `edited_${event.senderID}.jpg`);
-    const response = await axios({ method: "GET", url: apiUrl, responseType: "stream" });
+    const prompt = args.join(" ");
+    if (!prompt) {
+      return api.sendMessage("❌ প্রম্পট লিখো।", event.threadID, event.messageID);
+    }
 
-    const writer = fs.createWriteStream(filePath);
-    response.data.pipe(writer);
+    if (
+      !event.messageReply ||
+      !event.messageReply.attachments ||
+      event.messageReply.attachments.length === 0
+    ) {
+      return api.sendMessage("❌ কোনো ছবি reply করো।", event.threadID, event.messageID);
+    }
 
-    writer.on("finish", () => {
-      api.sendMessage(
-        {
-          body: `🔍 Prompt: “${prompt}”\n✨ এডিটেড ছবি রেডি!`,
-          attachment: fs.createReadStream(filePath)
+    const imgUrl = event.messageReply.attachments[0].url;
+    const imgPath = path.join(__dirname, "cache", `edit_${Date.now()}.png`);
+
+    // ছবি ডাউনলোড
+    const download = await axios.get(imgUrl, { responseType: "arraybuffer" });
+    fs.writeFileSync(imgPath, Buffer.from(download.data, "binary"));
+
+    // OpenAI API তে পাঠানো
+    const formData = new FormData();
+    formData.append("image", fs.createReadStream(imgPath));
+    formData.append("prompt", prompt);
+
+    const response = await axios.post(
+      "https://api.openai.com/v1/images/edits",
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.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}`, // ✅ Key env থেকে নেবে
+          ...formData.getHeaders(),
         },
-        event.threadID,
-        () => {
-          fs.unlinkSync(filePath);
-          api.unsendMessage(waitMsg.messageID);
-        },
-        event.messageID
-      );
-    });
+      }
+    );
 
-    writer.on("error", (err) => {
-      console.error(err);
-      api.sendMessage("❌ কিছু সমস্যা হয়েছে। আবার চেষ্টা করুন।", event.threadID, event.messageID);
-    });
-  } catch (err) {
-    console.error(err);
+    const editedUrl = response.data.data[0].url;
+    const editedImg = await axios.get(editedUrl, { responseType: "arraybuffer" });
+    const outPath = path.join(__dirname, "cache", `out_${Date.now()}.png`);
+    fs.writeFileSync(outPath, Buffer.from(editedImg.data, "binary"));
+
+    api.sendMessage(
+      { body: `✨ এডিটেড ছবি (${prompt})`, attachment: fs.createReadStream(outPath) },
+      event.threadID,
+      () => {
+        fs.unlinkSync(imgPath);
+        fs.unlinkSync(outPath);
+      },
+      event.messageID
+    );
+  } catch (e) {
+    console.error(e.response?.data || e);
     return api.sendMessage("❌ API তে সমস্যা হয়েছে। পরে আবার চেষ্টা করুন।", event.threadID, event.messageID);
   }
 };
