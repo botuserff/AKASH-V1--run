@@ -4,7 +4,7 @@ const path = require("path");
 
 module.exports.config = {
   name: "edit",
-  version: "1.0.0",
+  version: "1.0.1",
   hasPermssion: 0,
   credits: "Akash Edit",
   description: "Reply করা ছবি বা URL দিয়ে AI দিয়ে ছবি এডিট করে",
@@ -42,7 +42,8 @@ module.exports.run = async ({ api, event, args }) => {
     );
   }
 
-  const apiUrl = `${global.imranapi.imran}/api/editimg?prompt=${encodeURIComponent(
+  // Fixed: Direct API URL
+  const apiUrl = `https://imranapi.vercel.app/api/editimg?prompt=${encodeURIComponent(
     prompt
   )}&image=${encodeURIComponent(linkanh)}`;
 
