@@ -1,68 +1,111 @@
+const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
-const axios = require("axios");
 
 module.exports.config = {
-    name: "edit",
-    version: "5.0.0",
-    permission: 0,
-    credits: "Akash Edit",
-    description: "Reply করা ছবি + প্রম্পট অনুযায়ী AI দিয়ে এডিট (Gemini/OpenAI API)",
-    commandCategory: "image",
-    usages: "/edit <prompt> (reply to an image)",
-    cooldowns: 5,
+  name: "editimg",
+  version: "1.0.0",
+  permission: 0,
+  credits: "IMRAN",
+  description: "AI image editing using prompt + image or attachment",
+  prefix: true,
+  category: "image",
+  usages: "editimg [prompt] + reply image or link",
+  cooldowns: 5,
+  dependencies: { axios: "" }
 };
 
-module.exports.run = async function({ api, event, args }) {
-    try {
-        if (!event.messageReply || !event.messageReply.attachments || !event.messageReply.attachments[0])
-            return api.sendMessage("📸 | দয়া করে কোনো ছবি রিপ্লাই দিয়ে কমান্ড চালাও।", event.threadID, event.messageID);
+module.exports.run = async ({ api, event, args }) => {
+  let linkanh = event.messageReply?.attachments?.[0]?.url || null;
+  const prompt = args.join(" ").split("|")[0]?.trim();
 
-        if (!args[0])
-            return api.sendMessage("📝 | ছবি এডিট করার জন্য একটি প্রম্পট লিখো।", event.threadID, event.messageID);
+  // if link provided after the pipe
+  if (!linkanh && args.length > 1) {
+    linkanh = args.join(" ").split("|")[1]?.trim();
+  }
 
-        const prompt = args.join(" ");
-        const imgUrl = event.messageReply.attachments[0].url;
+  // graceful usage notice
+  if (!linkanh || !prompt) {
+    return api.sendMessage(
+      `📸 𝙀𝘿𝙄𝙏•𝙄𝙈𝙂\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `⛔️ 𝙔𝙤𝙪 𝙢𝙪𝙨𝙩 𝙜𝙞𝙫𝙚 𝙗𝙤𝙩𝙝 𝙖 𝙥𝙧𝙤𝙢𝙥𝙩 𝙖𝙣𝙙 𝙖𝙣 𝙞𝙢𝙖𝙜𝙚!\n\n` +
+      `✨ 𝑬𝒙𝒂𝒎𝒑𝒍𝒆:\n` +
+      `▶️ editimg add cute girlfriend |\n\n` +
+      `🖼️ 𝑶𝒓 𝑹𝒆𝒑𝒍𝒚 𝒕𝒐 𝒂𝒏 𝒊𝒎𝒂𝒈𝒆:\n` +
+      `▶️ editimg add cute girlfriend`,
+      event.threadID,
+      event.messageID
+    );
+  }
 
-        // Processing message
-        const processingMsg = await api.sendMessage("🔄 | তোমার ছবি AI দিয়ে এডিট হচ্ছে...", event.threadID);
+  linkanh = linkanh.replace(/\s/g, "");
+  if (!/^https?:\/\//.test(linkanh)) {
+    return api.sendMessage(
+      `⚠️ 𝙄𝙣𝙫𝙖𝙡𝙞𝙙 𝙞𝙢𝙖𝙜𝙚 𝙐𝙍𝙇!\n` +
+      `🔗 𝙈𝙪𝙨𝙩 𝙨𝙩𝙖𝙧𝙩 𝙬𝙞𝙩𝙝 http:// 𝙤𝙧 https://`,
+      event.threadID,
+      event.messageID
+    );
+  }
 
-        // ------------------ API Call ------------------
-        const response = await axios.post(
-            "https://api.openai.com/v1/images/edits", // Gemini API থাকলে endpoint পরিবর্তন করো
-            {
-                model: "gpt-image-1",
-                prompt: prompt,
-                image: imgUrl
-            },
-            {
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${process.env.GEMINI_API_KEY}` // তোমার API Key
-                }
-            }
-        );
+  const apiUrl = `{global.imranapi.imran}/api/editimg?prompt=${encodeURIComponent(
+    prompt
+  )}&image=${encodeURIComponent(linkanh)}`;
 
-        const base64Image = response.data.data[0].b64_json;
-        const buffer = Buffer.from(base64Image, "base64");
+  // Send waiting message
+  const waitMsg = await api.sendMessage(
+    `⏳ 𝗣𝗹𝗲𝗮𝘀𝗲 𝗪𝗮𝗶𝘁 ..`,
+    event.threadID
+  );
 
-        // ------------------ ফাইল লেখা ------------------
-        if (!fs.existsSync(path.join(__dirname, "cache"))) fs.mkdirSync(path.join(__dirname, "cache"));
-        const filePath = path.join(__dirname, "cache", `edit_${Date.now()}.png`);
-        fs.writeFileSync(filePath, buffer);
+  try {
+    const tempPath = path.join(
+      __dirname,
+      "cache",
+      `edited_${event.senderID}.jpg`
+    );
+    const response = await axios({
+      method: "GET",
+      url: apiUrl,
+      responseType: "stream"
+    });
 
-        // ------------------ Image পাঠানো ------------------
-        await api.sendMessage({
-            body: `✅ | তোমার ছবি প্রম্পট অনুযায়ী এডিট হয়েছে: "${prompt}"`,
-            attachment: fs.createReadStream(filePath)
-        }, event.threadID, event.messageID);
+    const writer = fs.createWriteStream(tempPath);
+    response.data.pipe(writer);
 
-        // Cleanup
-        fs.unlinkSync(filePath);
-        api.unsendMessage(processingMsg.messageID);
+    writer.on("finish", () => {
+      api.sendMessage(
+        {
+          body:
+            `🔍 𝙋𝙧𝙤𝙢𝙥𝙩: “${prompt}”\n` +
+            `🖼️ 𝘼𝙄 𝘼𝙧𝙩 𝙞𝙨 𝙧𝙚𝙖𝙙𝙮! ✨`,
+          attachment: fs.createReadStream(tempPath)
+        },
+        event.threadID,
+        () => {
+          fs.unlinkSync(tempPath);
+          // Delete waiting message
+          api.unsendMessage(waitMsg.messageID);
+        },
+        event.messageID
+      );
+    });
 
-    } catch (error) {
-        console.error(error.response?.data || error.message);
-        api.sendMessage("❌ | ছবি এডিট করার সময় সমস্যা হয়েছে, API Key ও ইন্টারনেট চেক করো।", event.threadID, event.messageID);
-    }
+    writer.on("error", (err) => {
+      console.error(err);
+      api.sendMessage(
+        "❌ 𝙁𝙖𝙞𝙡𝙚𝙙 𝙩𝙤 𝙨𝙖𝙫𝙚 𝙩𝙝𝙚 𝙞𝙢𝙖𝙜𝙚 𝙛𝙞𝙡𝙚.",
+        event.threadID,
+        event.messageID
+      );
+    });
+  } catch (error) {
+    console.error(error);
+    return api.sendMessage(
+      "❌ 𝙁𝙖𝙞𝙡𝙚𝙙 𝙩𝙤 𝙜𝙚𝙣𝙚𝙧𝙖𝙩𝙚 𝙞𝙢𝙖𝙜𝙚. 𝙏𝙧𝙮 𝙖𝙜𝙖𝙞𝙣 𝙡𝙖𝙩𝙚𝙧.",
+      event.threadID,
+      event.messageID
+    );
+  }
 };
