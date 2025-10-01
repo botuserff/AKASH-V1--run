@@ -2,11 +2,13 @@ const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
 const FormData = require("form-data");
-require("dotenv").config(); // 🔑 .env থেকে API Key লোড করবে
+
+// 👉 এখানে তোমার API key বসাও
+const OPENAI_API_KEY = "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";
 
 module.exports.config = {
   name: "editimg",
-  version: "1.0.1",
+  version: "1.0.2",
   permission: 0,
   credits: "Akash",
   description: "AI দিয়ে ছবি এডিট (reply করা ইমেজ + prompt)",
@@ -47,7 +49,7 @@ module.exports.run = async function ({ api, event, args }) {
       formData,
       {
         headers: {
-          Authorization: `Bearer ${process.env.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}`, // ✅ Key env থেকে নেবে
+          Authorization: `Bearer ${OPENAI_API_KEY}`, // এখানে key ব্যবহার হবে
           ...formData.getHeaders(),
         },
       }
