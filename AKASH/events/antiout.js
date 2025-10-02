@@ -1,43 +1,27 @@
 module.exports.config = {
-  name: "antiout",
-  eventType: ["log:unsubscribe"],
-  version: "0.0.1",
-  credits: "Modified by Mohammad Akash",
-  description: "Listen events"
+ name: "antiout",
+ eventType: ["log:unsubscribe"],
+ version: "0.0.1",
+ credits: "𝐂𝐘𝐁𝐄𝐑 ☢️_𖣘 -𝐁𝐎𝐓 ⚠️ 𝑻𝑬𝑨𝑴_ ☢️",
+ description: "Listen events"
 };
 
 module.exports.run = async({ event, api, Threads, Users }) => {
-  try {
-    let data = (await Threads.getData(event.threadID)).data || {};
-    if (data.antiout == false) return;
-    if (event.logMessageData.leftParticipantFbId == api.getCurrentUserID()) return;
-
-    const leftId = event.logMessageData.leftParticipantFbId;
-    const name = global.data.userName.get(leftId) || await Users.getNameUser(leftId);
-    const type = (event.author == leftId) ? "self-separation" : "kicked";
-
-    // যদি ইউজার নিজে ছেড়েছে (self-separation) — তখন আবার এড করার চেষ্টা
-    if (type == "self-separation") {
-      api.addUserToGroup(leftId, event.threadID, (error, info) => {
-        if (error) {
-          // যদি প্রাইভেসি বা অন্য কারণে এড না হয় — তোর দেওয়া মেসেজটি পাঠানো হবে
-          api.sendMessage(
-`আহারে! ${name} ভেবেছিলো পালাইছে 🏃💨
-কিন্তু প্রাইভেসি বর্ম লাগানো 🔒 তাই ফিরাইতে পারলাম না।
-এইবার বাঁচলি ভাই, কিন্তু চিরদিন না... 😏`,
-          event.threadID);
-        } else {
-          // সফলভাবে এড হলে — তোর দেওয়া মেসেজটি পাঠানো হবে
-          api.sendMessage(
-`ওই ${name}! পালানোর চেষ্টা করলি? 🤨
-এই গ্রুপ হইলো কারাগার 🕸️
-এখান থেকে বের হইতে চাইলে জামিন লাগবে – অ্যাডমিনের সাইন সহ! 😎
-তুই অনুমতি ছাড়া পালাইছিলি, তাই আবার হাজতে ফেরত দিলাম 🔥`,
-          event.threadID);
-        }
-      });
-    }
-  } catch (err) {
-    console.error("antiout error:", err);
-  }
+ let data = (await Threads.getData(event.threadID)).data || {};
+ if (data.antiout == false) return;
+ if (event.logMessageData.leftParticipantFbId == api.getCurrentUserID()) return;
+ const name = global.data.userName.get(event.logMessageData.leftParticipantFbId) || await Users.getNameUser(event.logMessageData.leftParticipantFbId);
+ const type = (event.author == event.logMessageData.leftParticipantFbId) ? "self-separation" : "Koi Ase Pichware Mai Lath Marta Hai?";
+ if (type == "self-separation") {
+  api.addUserToGroup(event.logMessageData.leftParticipantFbId, event.threadID, (error, info) => {
+   if (error) {
+    api.sendMessage(`সরি বস, ${name} কে আবার এড করতে পারলাম না। 
+সম্ভবত উনি বটকে ব্লক করেছে অথবা তার প্রাইভেসি সেটিংসের কারণে এড করা যায় না। 
+\n──────꯭─⃝‌‌𝐒𝐡𝐚𝐡𝐚𝐝𝐚𝐭 𝐂𝐡𝐚𝐭 𝐁𝐨𝐭─────`, event.threadID)
+   } else api.sendMessage(`শোন, ${name}, এই গ্রুপ হইলো গ্যাং!
+এখান থেকে যাইতে হলে এডমিনের পারমিশন লাগে!
+তুই পারমিশন ছাড়া লিভ নিছোস – তোকে আবার মাফিয়া স্টাইলে এড দিলাম।
+\n──────꯭─⃝‌‌𝐒𝐡𝐚𝐡𝐚𝐝𝐚𝐭 𝐂𝐡𝐚𝐭 𝐁𝐨𝐭─────`, event.threadID);
+  })
+ }
 }
