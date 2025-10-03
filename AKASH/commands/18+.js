@@ -29,9 +29,9 @@ function formatBalance(num) {
   return num + "$";
 }
 
-// 🔞 18+ ভিডিও Google Drive লিংক লিস্ট
+// 18+ ভিডিও লিস্ট
 const videos = [
-"https://drive.google.com/uc?export=download&id=1-gJdG8bxmZLyOC7-6E4A5Hm95Q9gWIPO",
+  "https://drive.google.com/uc?export=download&id=1-gJdG8bxmZLyOC7-6E4A5Hm95Q9gWIPO",
       "https://drive.google.com/uc?export=download&id=1-ryNR8j529EZyTCuMur9wmkFz4ahlv-f",
       "https://drive.google.com/uc?export=download&id=1-vHh7XBtPOS3s42q-s8s30Bzsx2u6czu",
       "https://drive.google.com/uc?export=download&id=11IUd-PDHozLmh_RtvSf0S-f3G6wut1ZT",
@@ -178,7 +178,7 @@ module.exports.run = async function({ api, event }) {
   const video = videos[Math.floor(Math.random() * videos.length)];
 
   return api.sendMessage(
-    `「 বেশি দেখিস না ভাই 🙂 」\n💸 1000$ কেটে নেওয়া হলো ✅\n📌 নতুন ব্যালেন্স: ${formatBalance(balance)}\n\n🔗 ${video}`,
+    `「 হেন্ডেল আর কত মারবি ভাই 🙂 」\n💸 1000$ কেটে নেওয়া হলো ✅\n📌 নতুন ব্যালেন্স: ${formatBalance(balance)}\n\n🔗 ${video}`,
     threadID,
     messageID
   );
