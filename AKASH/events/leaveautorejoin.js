@@ -1,9 +1,9 @@
 module.exports.config = {
   name: "leaveautorejoin",
   eventType: ["log:unsubscribe"],
-  version: "1.0.1",
+  version: "1.1.0",
   credits: "Mohammad Akash",
-  description: "Leave Noti + Auto Re-Add + Failed Add Notice"
+  description: "Leave Noti + Auto Re-Add (only self-leave) + Failed Add Notice"
 };
 
 module.exports.run = async function ({ api, event, Users }) {
@@ -28,12 +28,13 @@ module.exports.run = async function ({ api, event, Users }) {
 
   await api.sendMessage({ body: leaveMsg, mentions: mention }, threadID);
 
-  // 2️⃣ Auto Re-Add
-  try {
-    api.addUserToGroup(leaverID, threadID, async (err) => {
-      if(err) {
-        // 3️⃣ Failed Add Notice
-        const failMsg = 
+  // 2️⃣ Auto Re-Add ONLY if user left by themselves
+  if(!logMessageData.kickSenderFbId) {
+    try {
+      api.addUserToGroup(leaverID, threadID, async (err) => {
+        if(err) {
+          // 3️⃣ Failed Add Notice
+          const failMsg = 
 `⚠️━━━━━━━━━━━━━━━━⚠️
           ✨ 𝐀𝐃𝐃 𝐅𝐀𝐈𝐋𝐄𝐃 ✨
 ⚠️━━━━━━━━━━━━━━━━⚠️
@@ -48,10 +49,10 @@ module.exports.run = async function ({ api, event, Users }) {
 
 ⚠️━━━━━━━━━━━━━━━━⚠️`;
 
-        await api.sendMessage({ body: failMsg, mentions: mention }, threadID);
-      } else {
-        // Optional: Welcome back Noti
-        const welcomeBackMsg = 
+          await api.sendMessage({ body: failMsg, mentions: mention }, threadID);
+        } else {
+          // Optional: Welcome back Noti
+          const welcomeBackMsg = 
 `🎉━━━━━━━━━━━━━━━━🎉
           ✨ 𝐖𝐄𝐋𝐂𝐎𝐌𝐄 𝐁𝐀𝐂𝐊 ✨
 🎉━━━━━━━━━━━━━━━━🎉
@@ -63,10 +64,19 @@ module.exports.run = async function ({ api, event, Users }) {
 🎉━━━━━━━━━━━━━━━━🎉
        🤖 𝐂𝐡𝐚𝐭 𝐁𝐨𝐭 𝐁𝐲 𝐀𝐤𝐚𝐬𝐡
 🎉━━━━━━━━━━━━━━━━🎉`;
-        await api.sendMessage({ body: welcomeBackMsg, mentions: mention }, threadID);
-      }
-    });
-  } catch(e) {
-    console.log(e);
+          await api.sendMessage({ body: welcomeBackMsg, mentions: mention }, threadID);
+        }
+      });
+    } catch(e) {
+      console.log(e);
+    }
+  } else {
+    // Optional: Admin kicked notice
+    const kickNotice = 
+`⚠️━━━━━━━━━━━━━━━━⚠️
+👤 ${leaverName} was removed by an admin.
+No auto re-add attempted.
+⚠️━━━━━━━━━━━━━━━━⚠️`;
+    await api.sendMessage(kickNotice, threadID);
   }
 };
