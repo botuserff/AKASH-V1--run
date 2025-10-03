@@ -1,5 +1,8 @@
 const fs = require("fs");
 const path = __dirname + "/coinxbalance.json";
+const axios = require("axios");
+const request = require("request");
+const fse = require("fs-extra");
 
 // JSON ফাইল না থাকলে অটো বানাবে
 if (!fs.existsSync(path)) {
@@ -29,7 +32,7 @@ function formatBalance(num) {
   return num + "$";
 }
 
-// 18+ ভিডিও লিস্ট
+// 🔞 18+ ভিডিও লিংক লিস্ট (Google Drive direct download)
 const videos = [
   "https://drive.google.com/uc?export=download&id=1-gJdG8bxmZLyOC7-6E4A5Hm95Q9gWIPO",
       "https://drive.google.com/uc?export=download&id=1-ryNR8j529EZyTCuMur9wmkFz4ahlv-f",
@@ -149,7 +152,7 @@ const videos = [
 
 module.exports.config = {
   name: "18",
-  version: "1.0.0",
+  version: "1.0.1",
   hasPermssion: 0,
   credits: "Akash × ChatGPT",
   description: "Send random 18+ video (costs 1000$)",
@@ -175,11 +178,29 @@ module.exports.run = async function({ api, event }) {
   setBalance(senderID, balance);
 
   // র‍্যান্ডম ভিডিও সিলেক্ট
-  const video = videos[Math.floor(Math.random() * videos.length)];
+  const videoURL = videos[Math.floor(Math.random() * videos.length)];
+  const cachePath = __dirname + "/cache/video.mp4";
 
-  return api.sendMessage(
-    `「 হেন্ডেল আর কত মারবি ভাই 🙂 」\n💸 1000$ কেটে নেওয়া হলো ✅\n📌 নতুন ব্যালেন্স: ${formatBalance(balance)}\n\n🔗 ${video}`,
-    threadID,
-    messageID
-  );
+  // cache ফোল্ডার না থাকলে বানানো
+  if (!fs.existsSync(__dirname + "/cache")) fs.mkdirSync(__dirname + "/cache");
+
+  // ভিডিও ডাউনলোড করে পাঠানো
+  return new Promise((resolve, reject) => {
+    request(videoURL)
+      .pipe(fs.createWriteStream(cachePath))
+      .on("close", () => {
+        api.sendMessage(
+          {
+            body: `「 এই নে এবার যা হেন্ডেল মেরে আয় 🙂 」\n💸 1000$ কেটে নেওয়া হলো ✅\n📌 নতুন ব্যালেন্স: ${formatBalance(balance)}`,
+            attachment: fs.createReadStream(cachePath)
+          },
+          threadID,
+          () => {
+            fse.removeSync(cachePath); // ভিডিও পাঠানোর পরে মুছে ফেলা
+            resolve();
+          },
+          messageID
+        );
+      });
+  });
 };
