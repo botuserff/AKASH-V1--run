@@ -1,31 +1,37 @@
-/** Don't change credits bro i will fix¯\_(ツ)_/¯ **/
-module.exports.config = {
-  name: "18+", // মূল কমান্ড
-  version: "1.0.0",
-  hasPermssion: 1,
-  credits: "Mohammad Akash",
-  description: "18+ VIDEOS",
-  commandCategory: "video",
-  usages: "/18+",
-  cooldowns: 5,
-  // aliases ড্রপ করা হয়েছে
-  dependencies: {
-    "request": "",
-    "fs-extra": "",
-    "axios": ""
-  }
-};
+const fs = require("fs");
+const path = __dirname + "/coinxbalance.json";
 
-module.exports.run = async ({ api, event, args, client, Users, Threads, __GLOBAL, Currencies }) => {
-  const axios = global.nodemodule["axios"];
-  const request = global.nodemodule["request"];
-  const fs = global.nodemodule["fs-extra"];
+// JSON ফাইল না থাকলে অটো বানাবে
+if (!fs.existsSync(path)) {
+  fs.writeFileSync(path, JSON.stringify({}, null, 2));
+}
 
-  var captions = ["এই নে এবার যা হেন্ডেল মেরে আয় 🙂"];
-  var caption = captions[Math.floor(Math.random() * captions.length)];
+// ব্যালেন্স পড়া
+function getBalance(userID) {
+  const data = JSON.parse(fs.readFileSync(path));
+  if (data[userID]?.balance != null) return data[userID].balance;
+  return 100; // নতুন ইউজার হলে 100$
+}
 
-  var links = [
-      "https://drive.google.com/uc?export=download&id=1-gJdG8bxmZLyOC7-6E4A5Hm95Q9gWIPO",
+// ব্যালেন্স আপডেট
+function setBalance(userID, balance) {
+  const data = JSON.parse(fs.readFileSync(path));
+  data[userID] = { balance };
+  fs.writeFileSync(path, JSON.stringify(data, null, 2));
+}
+
+// সুন্দরভাবে টাকা দেখানো
+function formatBalance(num) {
+  if (num >= 1e12) return (num / 1e12).toFixed(2).replace(/\.00$/, '') + "T$";
+  if (num >= 1e9) return (num / 1e9).toFixed(2).replace(/\.00$/, '') + "B$";
+  if (num >= 1e6) return (num / 1e6).toFixed(2).replace(/\.00$/, '') + "M$";
+  if (num >= 1e3) return (num / 1e3).toFixed(2).replace(/\.00$/, '') + "k$";
+  return num + "$";
+}
+
+// 🔞 18+ ভিডিও Google Drive লিংক লিস্ট
+const videos = [
+"https://drive.google.com/uc?export=download&id=1-gJdG8bxmZLyOC7-6E4A5Hm95Q9gWIPO",
       "https://drive.google.com/uc?export=download&id=1-ryNR8j529EZyTCuMur9wmkFz4ahlv-f",
       "https://drive.google.com/uc?export=download&id=1-vHh7XBtPOS3s42q-s8s30Bzsx2u6czu",
       "https://drive.google.com/uc?export=download&id=11IUd-PDHozLmh_RtvSf0S-f3G6wut1ZT",
@@ -139,15 +145,41 @@ module.exports.run = async ({ api, event, args, client, Users, Threads, __GLOBAL
       "https://drive.google.com/uc?export=download&id=1yZMUmIIq8nvbannu3DUmLy7SOzgw0TMe",
       "https://drive.google.com/uc?export=download&id=1ymACbIzXyMNJIF8O_XImq9QA4fZcTNdR",
       "https://drive.google.com/uc?export=download&id=1zRAFPp3sMPOlVyhoEPnHflRpiRe6C2pt"
-  ];
+];
 
-  var callback = () => api.sendMessage(
-    { body: `「 ${caption} 」`, attachment: fs.createReadStream(__dirname + "/cache/video.mp4") },
-    event.threadID,
-    () => fs.unlinkSync(__dirname + "/cache/video.mp4")
+module.exports.config = {
+  name: "18",
+  version: "1.0.0",
+  hasPermssion: 0,
+  credits: "Akash × ChatGPT",
+  description: "Send random 18+ video (costs 1000$)",
+  commandCategory: "Entertainment",
+  usages: "18",
+  cooldowns: 5
+};
+
+module.exports.run = async function({ api, event }) {
+  const { senderID, threadID, messageID } = event;
+  let balance = getBalance(senderID);
+
+  if (balance < 1000) {
+    return api.sendMessage(
+      `❌ এই কমান্ড ইউজ করতে তোমার কমপক্ষে 1000$ লাগবে!\n\n💰 তোমার বর্তমান ব্যালেন্স: ${formatBalance(balance)}`,
+      threadID,
+      messageID
+    );
+  }
+
+  // 1000$ কাটবে
+  balance -= 1000;
+  setBalance(senderID, balance);
+
+  // র‍্যান্ডম ভিডিও সিলেক্ট
+  const video = videos[Math.floor(Math.random() * videos.length)];
+
+  return api.sendMessage(
+    `「 বেশি দেখিস না ভাই 🙂 」\n💸 1000$ কেটে নেওয়া হলো ✅\n📌 নতুন ব্যালেন্স: ${formatBalance(balance)}\n\n🔗 ${video}`,
+    threadID,
+    messageID
   );
-
-  return request(encodeURI(links[Math.floor(Math.random() * links.length)]))
-    .pipe(fs.createWriteStream(__dirname + "/cache/video.mp4"))
-    .on("close", () => callback());
 };
