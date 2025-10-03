@@ -1,9 +1,9 @@
 module.exports.config = {
   name: "joinnoti",
   eventType: ["log:subscribe"],
-  version: "1.0.2",
-  credits: "𝐒𝐡𝐚𝐡𝐚𝐝𝐚𝐭 𝐈𝐬𝐥𝐚𝐦",
-  description: "Welcome message with optional image/video",
+  version: "3.0.0",
+  credits: "Mohammad Akash",
+  description: "Stylish Premium welcome message with media & highlight",
   dependencies: {
     "fs-extra": "",
     "path": ""
@@ -25,111 +25,81 @@ module.exports.onLoad = function () {
 module.exports.run = async function({ api, event }) {
   const fs = require("fs");
   const path = require("path");
-  const { threadID } = event;
+  const { threadID, logMessageData } = event;
   
   const botPrefix = global.config.PREFIX || "/";
-  const botName = global.config.BOTNAME || "𝗦𝗵𝗮𝗵𝗮𝗱𝗮𝘁 𝗖𝗵𝗮𝘁 𝗕𝗼𝘁";
+  const botName = global.config.BOTNAME || "Mohammad Akash Chat Bot";
 
- 
-  if (event.logMessageData.addedParticipants.some(i => i.userFbId == api.getCurrentUserID())) {
+  // যদি বট নিজেই যোগ হয়
+  if (logMessageData.addedParticipants.some(i => i.userFbId == api.getCurrentUserID())) {
     await api.changeNickname(`[ ${botPrefix} ] • ${botName}`, threadID, api.getCurrentUserID());
-
-    api.sendMessage("চ্ঁলে্ঁ এ্ঁসে্ঁছি্ঁ 𝐒𝐡𝐚𝐡𝐚𝐝𝐚𝐭 𝐂𝐡𝐚𝐭 𝐁𝐨𝐭 এঁখঁনঁ তোঁমাঁদেঁরঁ সাঁথেঁ আঁড্ডাঁ দিঁবঁ..!", threadID, () => {
-      const randomGifPath = path.join(__dirname, "cache", "randomgif");
-      const allFiles = fs.readdirSync(randomGifPath).filter(file =>
-        [".mp4", ".jpg", ".png", ".jpeg", ".gif", ".mp3"].some(ext => file.endsWith(ext))
-      );
-
-      const selected = allFiles.length > 0 
-        ? fs.createReadStream(path.join(randomGifPath, allFiles[Math.floor(Math.random() * allFiles.length)])) 
-        : null;
-
-      const messageBody = `╭•┄┅═══❁🌺❁═══┅┄•╮
-     আ্ঁস্ঁসা্ঁলা্ঁমু্ঁ💚আ্ঁলা্ঁই্ঁকু্ঁম্ঁ
-╰•┄┅═══❁🌺❁═══┅┄•╯
-
-𝐓𝐡𝐚𝐧𝐤 𝐲𝐨𝐮 𝐬𝐨 𝐦𝐮𝐜𝐡 𝐟𝐨𝐫 𝐚𝐝𝐝𝐢𝐧𝐠 𝐦𝐞 𝐭𝐨 𝐲𝐨𝐮𝐫 𝐢-𝐠𝐫𝐨𝐮𝐩-🖤🤗
-𝐈 𝐰𝐢𝐥𝐥 𝐚𝐥𝐰𝐚𝐲𝐬 𝐬𝐞𝐫𝐯𝐞 𝐲𝐨𝐮 𝐢𝐧𝐚𝐡𝐚𝐥𝐥𝐚𝐡 🌺❤️
-
-𝐓𝐨 𝐯𝐢𝐞𝐰 𝐚𝐧𝐲 𝐜𝐨𝐦𝐦𝐚𝐧𝐝:
-${botPrefix}Help
-${botPrefix}Info
-${botPrefix}Admin
-
-★ যেকোনো অভিযোগ অথবা হেল্প এর জন্য এডমিন 𝐒𝐡𝐚𝐡𝐚𝐝𝐚𝐭 কে নক করতে পারেন ★
-➤𝐌𝐞𝐬𝐬𝐞𝐧𝐠𝐞𝐫: https://m.me/100001039692046
-➤𝐖𝐡𝐚𝐭𝐬𝐀𝐩𝐩: https://wa.me/100001039692046
-
-❖⋆═══════════════════════⋆❖
-          𝐁𝐨𝐭 𝐎𝐰𝐧𝐞𝐫 ➢ 𝐒𝐇𝐀𝐇𝐀𝐃𝐀𝐓 𝐒𝐀𝐇𝐔`;
-
-      if (selected) {
-        api.sendMessage({ body: messageBody, attachment: selected }, threadID);
-      } else {
-        api.sendMessage(messageBody, threadID);
-      }
-    });
-
-    return;
+    return api.sendMessage(
+      `🌟 আমি এখানে উপস্থিত! ${botName} আপনাদের সাথে আড্ডা দিতে প্রস্তুত! 🌟`,
+      threadID
+    );
   }
 
- 
   try {
     const { createReadStream, readdirSync } = global.nodemodule["fs-extra"];
-    let { threadName, participantIDs } = await api.getThreadInfo(threadID);
-    const threadData = global.data.threadData.get(parseInt(threadID)) || {};
-    let mentions = [], nameArray = [], memLength = [], i = 0;
+    const threadInfo = await api.getThreadInfo(threadID);
+    const { threadName, participantIDs } = threadInfo;
 
-    for (let id in event.logMessageData.addedParticipants) {
-      const userName = event.logMessageData.addedParticipants[id].fullName;
-      nameArray.push(userName);
-      mentions.push({ tag: userName, id });
-      memLength.push(participantIDs.length - i++);
-    }
-    memLength.sort((a, b) => a - b);
+    const addedUsers = logMessageData.addedParticipants.map(p => ({
+      id: p.userFbId,
+      name: `✨ ${p.fullName} ✨` // স্টাইলিশ হাইলাইট
+    }));
 
-    let msg = (typeof threadData.customJoin === "undefined") ? `╭•┄┅═══❁🌺❁═══┅┄•╮
-     আ্ঁস্ঁসা্ঁলা্ঁমু্ঁ💚আ্ঁলা্ঁই্ঁকু্ঁম্ঁ
-╰•┄┅═══❁🌺❁═══┅┄•╯
-হাসি, মজা, ঠাট্টায় গড়ে উঠুক  
-চিরস্থায়ী বন্ধুত্বের বন্ধন।🥰
-ভালোবাসা ও সম্পর্ক থাকুক আজীবন।💝
+    // Added By
+    const addedBy = logMessageData.actorFbId
+      ? (await api.getUserInfo(logMessageData.actorFbId))[logMessageData.actorFbId].name
+      : "Unknown";
 
-➤ আশা করি আপনি এখানে হাসি-মজা করে 
-আড্ডা দিতে ভালোবাসবেন।😍
-➤ সবার সাথে মিলেমিশে থাকবেন।😉
-➤ উস্কানিমূলক কথা বা খারাপ ব্যবহার করবেন না।🚫
-➤ গ্রুপ এডমিনের কথা শুনবেন ও রুলস মেনে চলবেন।✅
+    const memLength = participantIDs.length;
 
-›› প্রিয় {name},  
-আপনি এই গ্রুপের {soThanhVien} নম্বর মেম্বার!
+    // Stylish Premium Welcome Message
+    let msg = `
+╔═════════════════════════╗
+🌺💖 𝐖𝐄𝐋𝐂𝐎𝐌𝐄 𝐓𝐎 𝐎𝐔𝐑 𝐆𝐑𝐎𝐔𝐏 💖🌺
+╚═════════════════════════╝
 
-›› গ্রুপ: {threadName}
+👋 হ্যালো ${addedUsers.map(u => u.name).join(', ')}!
+আপনি আমাদের প্রিমিয়াম গ্রুপে ${memLength} নম্বর মেম্বার হিসেবে যোগ হয়েছেন।  
 
-💌 🌺 𝐖 𝐄 𝐋 𝐂 𝐎 𝐌 𝐄 🌺 💌
-╭─╼╾─╼🌸╾─╼╾───╮
-   ─꯭─⃝‌‌𝐒𝐡𝐚𝐡𝐚𝐝𝐚𝐭 𝐂𝐡𝐚𝐭 𝐁𝐨𝐭 🌺
-╰───╼╾─╼🌸╾─╼╾─╯
+🌟 Added By: ${addedBy} 🌟
 
-❖⋆══════════════════════════⋆❖` : threadData.customJoin;
+📌 গ্রুপ: ${threadName}  
+📌 এখানে হাসি-মজা, বন্ধুত্ব ও ভালোবাসা উপভোগ করুন।  
 
-    msg = msg
-      .replace(/\{name}/g, nameArray.join(', '))
-      .replace(/\{soThanhVien}/g, memLength.join(', '))
-      .replace(/\{threadName}/g, threadName);
+✨ নিয়মাবলী:
+⚡ সদ্ভাব বজায় রাখুন।  
+⚡ খারাপ ব্যবহার বা উস্কানি করবেন না।  
+⚡ গ্রুপের রুলস মেনে চলুন।  
 
+🌸 প্রিয় সদস্য, আশা করি আপনি এখানে আনন্দ উপভোগ করবেন। 🌸
+
+💌 কোন সমস্যা বা সাহায্যের জন্য যোগাযোগ করুন:  
+➤ Messenger: https://m.me/arakashiam
+➤ WhatsApp: https://wa.me/01933165880
+
+╔═════════════════════════╗
+      🤖 ${botName} 🤖
+╚═════════════════════════╝
+`;
+
+    // র‍্যান্ডম গিফ/ভিডিও/ছবি
     const joinGifPath = path.join(__dirname, "cache", "joinGif");
     const files = readdirSync(joinGifPath).filter(file =>
-      [".mp4", ".jpg", ".png", ".jpeg", ".gif", ".mp3"].some(ext => file.endsWith(ext))
+      [".mp4", ".jpg", ".png", ".jpeg", ".gif"].some(ext => file.endsWith(ext))
     );
-    const randomFile = files.length > 0 
-      ? createReadStream(path.join(joinGifPath, files[Math.floor(Math.random() * files.length)])) 
+    const randomFile = files.length > 0
+      ? createReadStream(path.join(joinGifPath, files[Math.floor(Math.random() * files.length)]))
       : null;
 
     return api.sendMessage(
-      randomFile ? { body: msg, attachment: randomFile, mentions } : { body: msg, mentions },
+      randomFile ? { body: msg, attachment: randomFile } : { body: msg },
       threadID
     );
+
   } catch (e) {
     console.error(e);
   }

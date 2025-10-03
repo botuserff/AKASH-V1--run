@@ -1,9 +1,9 @@
 module.exports.config = {
   name: "leave",
   eventType: ["log:unsubscribe"],
-  version: "1.0.0",
-  credits: "𝐂𝐘𝐁𝐄𝐑 ☢️_𖣘 -𝐁𝐎𝐓 ⚠️ 𝑻𝑬𝑨𝑴_ ☢️",
-  description: "Thông báo bot hoặc người rời khỏi nhóm",
+  version: "1.0.2",
+  credits: "𝐀𝐤𝐚𝐬𝐡 𝐂𝐡𝐚𝐭 𝐁𝐨𝐭",
+  description: "গ্রুপ থেকে কেউ চলে গেলে সুন্দর নোটিফিকেশন দেখানো",
   dependencies: {
     "fs-extra": "",
     "path": ""
@@ -15,26 +15,28 @@ module.exports.run = async function({ api, event, Users, Threads }) {
 
   const { createReadStream, existsSync, mkdirSync } = global.nodemodule["fs-extra"];
   const { join } = global.nodemodule["path"];
-  const { threadID } = event;
+  const { threadID, author } = event;
 
+  // থ্রেড ডেটা ও ইউজারের নাম লোড
   const data = global.data.threadData.get(parseInt(threadID)) || (await Threads.getData(threadID)).data;
   const name = global.data.userName.get(event.logMessageData.leftParticipantFbId) || await Users.getNameUser(event.logMessageData.leftParticipantFbId);
 
-  const type = (event.author == event.logMessageData.leftParticipantFbId)
-    ? " তোর সাহস কম না  গ্রুপের এডমিনের পারমিশন ছাড়া তুই লিভ  নিস😡😠🤬 \n✦─────꯭─⃝‌‌𝐒𝐡𝐚𝐡𝐚𝐝𝐚𝐭 𝐂𝐡𝐚𝐭 𝐁𝐨𝐭────✦"
-    : "তোমার এই গ্রুপে থাকার কোনো যোগ্যাতা নেই ছাগল😡\nতাই তোমাকে লাথি মেরে গ্রুপ থেকে বের করে দেওয়া হলো🤪 WELLCOME REMOVE🤧\n✦─────꯭─⃝‌‌𝐒𝐡𝐚𝐡𝐚𝐝𝐚𝐭 𝐂𝐡𝐚𝐭 𝐁𝐨𝐭────✦";
+  // টাইপ অনুযায়ী মেসেজ
+  const type = (author == event.logMessageData.leftParticipantFbId)
+    ? `⚡️ {name} সওয়ারি! তুমি নিজেই গ্রুপ ছাড়লে 😢\nআশা করি আবার দেখা হবে 🙏`
+    : `🚨 {name}, তুমি গ্রুপে থাকার যোগ্য নও 😎\nতাই তোমাকে এডমিনের সিদ্ধান্তে গ্রুপ থেকে বের করা হলো ⚡️`;
 
-  const path = join(__dirname, "Shahadat", "leaveGif");
-  const gifPath = join(path, `leave1.gif`);
+  // ফাইল পাথ
+  const pathDir = join(__dirname, "Akash", "leaveGif");
+  const gifPath = join(pathDir, "leave1.gif");
+  if (!existsSync(pathDir)) mkdirSync(pathDir, { recursive: true });
 
-  if (!existsSync(path)) mkdirSync(path, { recursive: true });
+  // কাস্টম মেসেজ চেক
+  let msg = (typeof data.customLeave == "undefined") 
+    ? type 
+    : data.customLeave.replace(/\{name}/g, name);
 
-  let msg = (typeof data.customLeave == "undefined")
-    ? "ইস {name} {type} "
-    : data.customLeave;
-
-  msg = msg.replace(/\{name}/g, name).replace(/\{type}/g, type);
-
+  // GIF সহ বা ছাড়া
   const formPush = existsSync(gifPath)
     ? { body: msg, attachment: createReadStream(gifPath) }
     : { body: msg };
