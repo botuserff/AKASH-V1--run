@@ -1,7 +1,7 @@
 module.exports.config = {
   name: "protectGroup",
-  eventType: ["log:thread-name", "log:thread-icon", "log:thread-nickname"],
-  version: "3.0.0",
+  eventType: ["log:thread-name", "log:thread-nickname", "log:thread-icon"],
+  version: "3.1.0",
   credits: "Akash Edit",
   description: "Protects group name, photo, nickname from non-admins, stylish alerts & auto-kick repeated offenders"
 };
@@ -10,67 +10,62 @@ const warnedUsers = {}; // Track offenders
 
 module.exports.run = async ({ event, api, Users, Threads }) => {
   try {
-    const { logMessageData, author, type, threadID } = event;
+    const { type, author, threadID, logMessageData } = event;
     const threadInfo = await api.getThreadInfo(threadID);
-
-    // Admin IDs
     const admins = threadInfo.adminIDs.map(ad => ad.id);
 
-    if (!admins.includes(author)) {
-      let restoreMsg = "";
-      let shouldKick = false;
-      const userName = (await Users.getInfo(author))[author].name;
+    // Admin হলে কিছু না করা
+    if (admins.includes(author)) return;
 
-      switch(type) {
-        case "log:thread-name":
-          await api.setTitle(threadInfo.threadName, threadID);
-          restoreMsg = `⚠️ ${userName} tried to change the group NAME!\n✅ Restored to: "${threadInfo.threadName}"`;
-          break;
+    let restoreMsg = "";
+    let shouldKick = false;
 
-        case "log:thread-icon":
-          if(threadInfo.imageSrc) {
-            await api.setImage(threadInfo.imageSrc, threadID);
-            restoreMsg = `⚠️ ${userName} tried to change the group PHOTO!\n✅ Photo restored!`;
-          }
-          break;
+    const userName = (await Users.getInfo(author))[author].name;
 
-        case "log:thread-nickname":
-          const { participant_id, previous_nickname } = logMessageData;
-          await api.setNickname(previous_nickname || "", participant_id, threadID);
-          const nickNameUser = (await Users.getInfo(participant_id))[participant_id].name;
-          restoreMsg = `⚠️ ${nickNameUser} tried to change their NICKNAME!\n✅ Restored to: "${previous_nickname || "None"}"`;
-          break;
+    switch(type) {
+      case "log:thread-name":
+        const oldName = logMessageData.oldName || threadInfo.threadName;
+        await api.setTitle(oldName, threadID);
+        restoreMsg = `⚠️ ${userName} tried to change the group NAME!\n✅ Restored to: "${oldName}"`;
+        break;
 
-        default:
-          break;
-      }
+      case "log:thread-icon":
+        const oldImage = logMessageData.oldImage || threadInfo.imageSrc;
+        if(oldImage) await api.setImage(oldImage, threadID);
+        restoreMsg = `⚠️ ${userName} tried to change the group PHOTO!\n✅ Photo restored!`;
+        break;
 
-      // Warning + Kick logic
-      warnedUsers[author] = warnedUsers[author] ? warnedUsers[author] + 1 : 1;
-      if (warnedUsers[author] >= 2) { // যদি একই user দুইবার চেষ্টা করে
-        shouldKick = true;
-      }
+      case "log:thread-nickname":
+        const { participant_id, previous_nickname } = logMessageData;
+        await api.setNickname(previous_nickname || "", participant_id, threadID);
+        const nickNameUser = (await Users.getInfo(participant_id))[participant_id].name;
+        restoreMsg = `⚠️ ${nickNameUser} tried to change their NICKNAME!\n✅ Restored to: "${previous_nickname || "None"}"`;
+        break;
 
-      // Send stylish message
-      if(restoreMsg) {
-        const message = `
+      default: break;
+    }
+
+    // Warning + Kick
+    warnedUsers[author] = (warnedUsers[author] || 0) + 1;
+    if (warnedUsers[author] >= 2) shouldKick = true;
+
+    if(restoreMsg) {
+      const message = `
 ━━━━━━━━━━━━━━━━━━
 ${restoreMsg}
 ━━━━━━━━━━━━━━━━━━
 💡 Reminder: Only Admins can change group settings!
 `;
-        await api.sendMessage(message, threadID);
-      }
+      await api.sendMessage(message, threadID);
+    }
 
-      // Kick if repeated
-      if (shouldKick) {
-        try {
-          await api.removeUserFromGroup(author, threadID);
-          await api.sendMessage(`🚫 ${userName} was kicked for repeated non-admin changes!`, threadID);
-          warnedUsers[author] = 0; // Reset after kick
-        } catch (err) {
-          console.error("Failed to kick user:", err);
-        }
+    if(shouldKick) {
+      try {
+        await api.removeUserFromGroup(author, threadID);
+        await api.sendMessage(`🚫 ${userName} was kicked for repeated non-admin changes!`, threadID);
+        warnedUsers[author] = 0;
+      } catch (err) {
+        console.error("Kick failed (check bot admin permission):", err);
       }
     }
 
