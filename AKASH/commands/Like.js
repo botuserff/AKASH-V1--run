@@ -15,7 +15,7 @@ module.exports.config = {
 };
 
 // ==== CONFIG (তুমি এখানে চাইলে বদলাতে পারো) ====
-const ALLOWED_GROUP_ID = -1003076524976; // যদি তোমার প্ল্যাটফর্ম threadID আলাদা হয় সেটাও বসাও
+const ALLOWED_GROUP_ID = -24372529942405074; // যদি তোমার প্ল্যাটফর্ম threadID আলাদা হয় সেটাও বসাও
 const VIP_USER_ID = 7981526462; // Telegram style id; তোমার সিস্টেম অনুযায়ী senderID বসাও
 const DAILY_REGION_LIMIT = 30; // প্রতিদিন প্রতি রিজিয়নের ম্যাক্স
 const API_BASE = "https://anish-likes.vercel.app/like";
