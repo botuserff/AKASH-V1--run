@@ -4,7 +4,7 @@ const Canvas = require("canvas");
 
 module.exports.config = {
   name: "gc2.0",
-  version: "2.0.0",
+  version: "2.0.1",
   hasPermssion: 0,
   credits: "Akash Edit",
   description: "Generate stylish group members card (Admins + Members)",
@@ -44,7 +44,8 @@ module.exports.run = async ({ api, event }) => {
 
     for (let uid of members) {
       try {
-        const url = `https://graph.facebook.com/${uid}/picture?height=200&width=200&access_token=6628568379%7C%7C62f8ce9f74b12f84c123cc23437a4a32`;
+        // 🔥 টোকেন ছাড়া সরাসরি DP ফেচ (proxy link ব্যবহার)
+        const url = `https://api.allorigins.win/raw?url=https://graph.facebook.com/${uid}/picture?width=200&height=200`;
         const imgData = (await axios.get(url, { responseType: "arraybuffer" })).data;
         const avatar = await Canvas.loadImage(imgData);
 
