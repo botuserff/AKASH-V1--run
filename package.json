@@ -1,5 +1,5 @@
 {
-  "name": "mohammad-akash",
+  "name": "bot-assistant",
   "version": "5.0.0",
   "description": "made by Mohammad Akash",
   "main": "index.js",
@@ -8,7 +8,7 @@
     "npm": ">=10.0.0 <13.0.0"
   },
   "scripts": {
-    "start": "node Akash.js",
+    "start": "node index.js",
     "login": "node login",
     "test": "node --trace-warnings --use_strict --async-stack-traces mirai"
   },
