@@ -52,7 +52,7 @@ module.exports.run = async ({
       return _0xbee1d2.sendMessage("⚠️ এই নামে ইতিমধ্যে একটি ফাইল রয়েছে। অন্য নাম দিন!", _0x27c6a5.threadID, _0x27c6a5.messageID);
     }
     fs.writeFileSync(_0x15dfe3, _0x43d48a, "utf-8");
-    _0xbee1d2.sendMessage("✅ সফলভাবে ফাইল তৈরি হয়েছে: " + _0x15dfe3, _0x27c6a5.threadID, _0x27c6a5.messageID);
+    _0xbee1d2.sendMessage("✅ সফলভাবে সুজনের বটে ফাইল তৈরি হয়েছে: " + _0x15dfe3, _0x27c6a5.threadID, _0x27c6a5.messageID);
   } catch (_0x4febb9) {
     console.error("Error:", _0x4febb9);
     _0xbee1d2.sendMessage("❌ ফাইল তৈরি করতে একটি সমস্যা হয়েছে!", _0x27c6a5.threadID, _0x27c6a5.messageID);
