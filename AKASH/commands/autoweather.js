@@ -4,21 +4,15 @@ const axios = require('axios');
 const moment = require('moment-timezone');
 
 module.exports.config = {
-    name: 'autoweather',
-    version: '2.0.0',
+    name: 'autoweather_dhaka',
+    version: '1.2.0',
     hasPermssion: 0,
     credits: 'Mohammad Akash',
-    description: 'Sends BD weather updates every 10 minutes with random advice',
+    description: 'Sends Dhaka weather updates every 30 minutes in premium style',
     commandCategory: 'group messenger',
     usages: '[]',
     cooldowns: 3
 };
-
-// বাংলাদেশের প্রধান জেলা
-const districts = [
-    'Dhaka', 'Chittagong', 'Rajshahi', 'Khulna', 'Sylhet',
-    'Barisal', 'Rangpur', 'Mymensingh', 'Coxs Bazar', 'Comilla'
-];
 
 // Random advice lines
 const tips = [
@@ -32,22 +26,22 @@ const tips = [
 ];
 
 // Weather fetch function (wttr.in)
-async function getWeather(city) {
+async function getWeather() {
     try {
-        const res = await axios.get(`https://wttr.in/${city}?format=%C+%t`);
-        return res.data;
+        const res = await axios.get(`https://wttr.in/Dhaka?format=%C+%t`);
+        return res.data; // যেমন: 🌤️ 31°C
     } catch {
         return "🌧️ তথ্য আনা যায়নি";
     }
 }
 
 module.exports.onLoad = ({ api }) => {
-    console.log(chalk.bold.hex("#00bfff")("============ AUTOWEATHER SYSTEM LOADED (Every 10 Minutes) ============"));
+    console.log(chalk.bold.hex("#00bfff")("============ AUTOWEATHER DHAKA LOADED ============"));
 
-    // প্রতি ১০ মিনিটে auto run
+    // প্রতি ৩০ মিনিটে auto run
     const rule = new schedule.RecurrenceRule();
     rule.tz = 'Asia/Dhaka';
-    rule.minute = new schedule.Range(0, 59, 10);
+    rule.minute = new schedule.Range(0, 59, 30); // 00, 30 মিনিটে
 
     schedule.scheduleJob(rule, async () => {
         if (!global.data?.allThreadID) return;
@@ -56,30 +50,29 @@ module.exports.onLoad = ({ api }) => {
         const dateStr = now.format('DD MMM YYYY');
         const timeStr = now.format('hh:mm A');
 
-        let report = "🌦️ বাংলাদেশ আবহাওয়া আপডেট\n━━━━━━━━━━━━━━━\n";
-
-        // সকল জেলার আবহাওয়া
-        for (const district of districts) {
-            const weather = await getWeather(district);
-            report += `📍 ${district}: ${weather}\n`;
-        }
-
-        // Random advice
+        const weather = await getWeather();
         const tip = tips[Math.floor(Math.random() * tips.length)];
 
-        report += "━━━━━━━━━━━━━━━\n";
-        report += `📅 তারিখ: ${dateStr}\n`;
-        report += `🕒 সময়: ${timeStr}\n`;
-        report += `💡 পরামর্শ: ${tip}\n`;
+        const message =
+`╭─────────────────────────╮
+🌤️ এই মুহূর্তে জানানো হচ্ছে ঢাকায়  
+╰─────────────────────────╯
+🌡️ ${weather}  
+
+━━━━━━━━━━━━━━━━
+📅 তারিখ: ${dateStr}
+🕒 সময়: ${timeStr}
+💡 পরামর্শ: ${tip}
+━━━━━━━━━━━━━━━━`;
 
         // সব গ্রুপে পাঠানো
         global.data.allThreadID.forEach(threadID => {
-            api.sendMessage(report, threadID, err => {
+            api.sendMessage(message, threadID, err => {
                 if (err) console.error(`Weather send failed (${threadID}):`, err);
             });
         });
 
-        console.log(chalk.hex("#00FFFF")(`[BDT] Weather report sent: ${dateStr}, ${timeStr}`));
+        console.log(chalk.hex("#00FFFF")(`[BDT] Dhaka weather sent: ${dateStr}, ${timeStr}`));
     });
 };
 
